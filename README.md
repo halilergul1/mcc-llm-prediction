@@ -59,7 +59,7 @@ python scripts/prepare_data.py \
     --train-transactions bank_a/transactions.csv --train-demographics bank_a/demographics.csv \
     --test-transactions bank_b/transactions.csv --test-demographics bank_b/demographics.csv
 
-# 2. Baselines: trained at length 9, predicted at lengths 4, 7, 9 and 14
+# 2. Baselines: grid search on the validation split, trained at length 9, predicted at 4, 7, 9 and 14
 python scripts/run_baselines.py        # Random, Proportional, Averaging
 python scripts/train_lstm.py
 python scripts/train_cnn.py
@@ -79,12 +79,19 @@ python scripts/evaluate.py --fixed-population --out results/metrics_fixed_popula
     --pairs qwen-full@9:qwen-full@4 qwen-full@9:qwen-full@14
 ```
 
-Outputs: `runs/` (checkpoints, adapters, merged models), `results/predictions/` (one CSV per model and
-length with `customer_id`, `ground_truth`, `prediction`, `parsed_prediction`) and `results/metrics/`
-(`metrics.csv`, `confusion.csv`, `significance.csv`, `pairs.csv`, and `factorial.csv` when the eight
-condition files exist). `python scripts/evaluate.py --help` explains the pair syntax, including averages
-over training seeds. Baseline options that take several values (for example `--lr 1e-3 5e-4`) run a grid search on the
-validation split.
+Outputs: `runs/` (checkpoints, adapters, merged models, training logs with the grid results),
+`results/predictions/` (one CSV per model and length with `customer_id`, `ground_truth`, `prediction`)
+and `results/metrics/` (`metrics.csv`, `confusion.csv`, `significance.csv`, `pairs.csv`, and
+`factorial.csv` when the eight condition files exist). `python scripts/evaluate.py --help` explains the
+pair syntax, including averages over training seeds.
+
+Each baseline script trains every combination of its grid in `config.py` (`LSTM_GRID`, `CNN_GRID`,
+`SASREC_GRID`, `DROS_GRID`) and keeps the one with the best validation weighted F1. The grids contain
+the configurations reported in the paper. One value per option trains one configuration, for example
+`python scripts/train_lstm.py --hidden-size 128 --lr 1e-3`.
+
+An LLM answer, without its final period, is the prediction. An answer that is not one of the four
+categories counts as an error.
 
 ## Ablations
 

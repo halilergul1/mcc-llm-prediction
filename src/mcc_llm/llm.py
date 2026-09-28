@@ -1,13 +1,14 @@
 """LoRA fine-tuning (Section 3.4, Table 2) and greedy inference for Qwen3.5-9B and Mistral-7B-Instruct.
 
-Chat format: Qwen gets a system, a user and an assistant turn, with thinking disabled
-in the chat template; Mistral gets a user and an assistant turn. The user turn is the
-Instruction Input (Task Instruction and Task Input), the assistant turn the Instruction
-Output. The loss is the log-likelihood of the Instruction Output tokens (Equation 1).
+Chat format: a user turn with the Instruction Input (Task Instruction and Task Input) and
+an assistant turn with the Instruction Output, through each model's chat template; for Qwen
+the template's thinking mode is disabled. The loss is the log-likelihood of the Instruction
+Output tokens (Equation 1).
 
 Training uses an 8-bit copy of the frozen base model (bitsandbytes) with PEFT and TRL.
 For inference the adapter is merged into the bf16 base weights and served with vLLM,
-greedy, at most 10 new tokens. The generated text is mapped to one of the four classes.
+greedy, at most 10 new tokens. The generated answer, without its final period, is the
+predicted category.
 """
 from __future__ import annotations
 
@@ -20,8 +21,6 @@ import torch
 from . import config
 
 FAMILIES = ("qwen", "mistral")
-LABELS = {"grocery": "Grocery", "clothing": "Clothing", "gas stations": "Gas stations",
-          "gas station": "Gas stations", "other": "Other"}
 
 
 def run_name(family: str, condition: str, drop_field: str | None = None, seed: int = config.SEED,
@@ -35,7 +34,7 @@ def run_name(family: str, condition: str, drop_field: str | None = None, seed: i
     return name if seed == config.SEED else f"{name}-seed{seed}"
 
 
-# --------------------------------------------------------------------------- prompts and parsing
+# --------------------------------------------------------------------------- prompts
 def load_tokenizer(model: str | Path, family: str):
     from transformers import AutoTokenizer
 
@@ -49,16 +48,14 @@ def load_tokenizer(model: str | Path, family: str):
     return tokenizer
 
 
-def chat_messages(sample: dict, family: str) -> list[dict]:
-    messages = [] if family == "mistral" else [{"role": "system", "content": sample["system"]}]
-    messages.append({"role": "user", "content": f"{sample['instruction']}\n\n{sample['input']}"})
-    return messages
+def chat_messages(sample: dict) -> list[dict]:
+    return [{"role": "user", "content": f"{sample['instruction']}\n\n{sample['input']}"}]
 
 
 def render_prompt(tokenizer, sample: dict, family: str) -> str:
     """Chat-formatted prompt ending where the answer starts. Used for training and inference alike."""
     extra = {"enable_thinking": False} if family == "qwen" else {}
-    text = tokenizer.apply_chat_template(chat_messages(sample, family), tokenize=False,
+    text = tokenizer.apply_chat_template(chat_messages(sample), tokenize=False,
                                          add_generation_prompt=True, **extra)
     if family == "qwen" and "<think>" in (tokenizer.chat_template or "") and not text.endswith("</think>\n\n"):
         text += "<think>\n\n</think>\n\n"          # thinking disabled: empty reasoning block
@@ -67,16 +64,9 @@ def render_prompt(tokenizer, sample: dict, family: str) -> str:
     return text
 
 
-def parse_category(text: str) -> str | None:
-    """Map generated text to a class: prefix match first, then substring match."""
-    t = text.strip().rstrip(".").lower()
-    for key, label in LABELS.items():
-        if t.startswith(key):
-            return label
-    for key, label in LABELS.items():
-        if key in t:
-            return label
-    return None
+def answer(text: str) -> str:
+    """The generated answer without surrounding space and its final period, e.g. 'Grocery.' -> 'Grocery'."""
+    return text.strip().removesuffix(".")
 
 
 # --------------------------------------------------------------------------- fine-tuning

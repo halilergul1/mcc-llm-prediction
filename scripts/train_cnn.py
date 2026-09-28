@@ -4,7 +4,10 @@ Two stacked convolutions (32 and 64 channels, kernel 3) with adaptive average po
 linear head, class-weighted cross-entropy, Adam, early stopping on validation loss. The
 pooling layer lets one model read inputs of any length. One sample per customer: the last
 9 transactions are the input and the 10th, most recent one is the target.
-Options that take several values run a grid search on the validation split (weighted F1).
+
+Grid search: every combination of the values given (default: config.CNN_GRID) is trained and
+the one with the best validation weighted F1 is kept. One value per option trains one model:
+    python scripts/train_cnn.py --lr 1e-3 --batch-size 64
 """
 import argparse
 from pathlib import Path
@@ -19,8 +22,8 @@ def main():
     p.add_argument("--data", type=Path, default=Path("data/processed"))
     p.add_argument("--run-dir", type=Path, default=Path("runs/cnn"))
     p.add_argument("--predictions", type=Path, default=Path("results/predictions"))
-    p.add_argument("--lr", type=float, nargs="+", default=[config.NN_TRAINING["lr"]])
-    p.add_argument("--batch-size", type=int, nargs="+", default=[config.NN_TRAINING["batch_size"]])
+    p.add_argument("--lr", type=float, nargs="+", default=list(config.CNN_GRID["lr"]))
+    p.add_argument("--batch-size", type=int, nargs="+", default=list(config.CNN_GRID["batch_size"]))
     p.add_argument("--max-epochs", type=int, default=config.NN_TRAINING["max_epochs"])
     p.add_argument("--seed", type=int, default=config.SEED)
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")

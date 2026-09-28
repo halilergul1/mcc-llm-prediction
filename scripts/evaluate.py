@@ -3,7 +3,8 @@
 Outputs in --out:
     metrics.csv       every model at every length: accuracy, weighted precision, recall and F1,
                       macro-F1, balanced accuracy, class-wise precision, recall and F1, 95% intervals
-    confusion.csv     confusion matrix of every model at every length (rows: true class)
+    confusion.csv     confusion matrix of every model at every length (rows: true class; the last
+                      column counts answers that are not a category)
     significance.csv  every LLM against every baseline at every length: difference, 95% interval and
                       null-centred bootstrap p for the F1 metrics and balanced accuracy, exact McNemar p
                       for accuracy, and Holm-adjusted p over the baselines (one LLM, length and metric)
@@ -38,6 +39,7 @@ FACTORIAL = {(0, 0, 0): "qwen-seq", (1, 0, 0): "qwen-seq+amounts", (0, 1, 0): "q
              (1, 0, 1): "qwen-seq+amounts+demographics", (0, 1, 1): "qwen-seq+dates+demographics",
              (1, 1, 1): "qwen-full"}
 CODE = {c: i for i, c in enumerate(config.CATEGORIES)}
+NOT_A_CATEGORY = "not a category"
 
 
 def main():
@@ -70,9 +72,11 @@ def main():
                 lo, hi = s.interval(m)
                 row.update({m: s.point[m], f"{m} CI low": lo, f"{m} CI high": hi})
             metrics.append(row)
-            cm = np.bincount(s.y * config.NUM_CLASSES + s.p, minlength=config.NUM_CLASSES ** 2)
-            for t, counts in zip(config.CATEGORIES, cm.reshape(config.NUM_CLASSES, -1)):
-                confusion.append({"model": name, "length": x, "true class": t, **dict(zip(config.CATEGORIES, counts))})
+            k = config.NUM_CLASSES
+            cm = np.bincount(s.y * (k + 1) + s.p, minlength=k * (k + 1)).reshape(k, k + 1)
+            for t, counts in zip(config.CATEGORIES, cm):
+                confusion.append({"model": name, "length": x, "true class": t,
+                                  **dict(zip(config.CATEGORIES + (NOT_A_CATEGORY,), counts))})
         for llm_name in [n for n in args.llms if n in scored]:
             family = [{"length": x, "N": len(customers), "llm": llm_name, "baseline": b,
                        **evaluation.compare(scored[llm_name], scored[b], TESTED)}
@@ -127,8 +131,8 @@ class Evaluator:
         if key not in self.weights:
             self.weights[key] = evaluation.bootstrap_weights(len(customers), self.n_bootstrap, self.rng)
         df = df.set_index("customer_id").loc[customers]
-        return evaluation.Scored(df["ground_truth"].map(CODE).to_numpy(), df["parsed_prediction"].map(CODE).to_numpy(),
-                                 self.weights[key])
+        pred = df["prediction"].map(CODE).fillna(evaluation.INVALID).astype(int).to_numpy()
+        return evaluation.Scored(df["ground_truth"].map(CODE).to_numpy(), pred, self.weights[key])
 
     def pair(self, spec, lengths):
         (names_a, len_a), (names_b, len_b) = (side(s) for s in spec.split(":"))

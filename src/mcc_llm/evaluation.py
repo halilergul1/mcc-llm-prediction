@@ -1,8 +1,9 @@
 """Metrics, paired bootstrap, exact McNemar test and Holm correction (Section 3.8).
 
 Point estimates come from scikit-learn. For the 10,000 bootstrap resamples of the test
-customers (drawn once and shared by all models), every metric is computed from the 4 x 4
-confusion matrix of each resample, which gives the same values as scikit-learn.
+customers (drawn once and shared by all models), every metric is computed from the confusion
+matrix of each resample, which gives the same values as scikit-learn. Predictions are class
+codes 0..3; code 4 marks an answer that is not a category, which is always an error.
 """
 from __future__ import annotations
 
@@ -10,21 +11,26 @@ from types import SimpleNamespace
 
 import numpy as np
 from scipy.stats import binomtest
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_recall_fscore_support
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from . import config
 
 CLASSES = config.CATEGORIES
+INVALID = config.NUM_CLASSES      # code of an answer that is not one of the four categories
 OVERALL = ["Acc", "Prec (w)", "Rec (w)", "F1 (w)", "Macro-F1", "Bal. acc"]
 CLASS_F1 = [f"F1 {c}" for c in CLASSES]
 
 
 def metrics_from_confusion(cm) -> dict:
-    """cm[..., true, predicted]: one matrix or a stack of bootstrap matrices."""
+    """cm[..., true class, predicted class]: one matrix or a stack of bootstrap matrices.
+
+    An optional last column counts answers that are not a category (errors for every class).
+    """
     cm = np.asarray(cm, dtype=float)
+    k = cm.shape[-2]
     n = cm.sum(axis=(-2, -1))
-    tp = np.diagonal(cm, axis1=-2, axis2=-1)
-    support, predicted = cm.sum(-1), cm.sum(-2)
+    tp = np.diagonal(cm[..., :k], axis1=-2, axis2=-1)
+    support, predicted = cm.sum(-1), cm[..., :k].sum(-2)
     with np.errstate(divide="ignore", invalid="ignore"):
         prec = np.where(predicted > 0, tp / predicted, 0.0)
         rec = np.where(support > 0, tp / support, 0.0)
@@ -50,7 +56,7 @@ def point_metrics(y, p) -> dict:
     prec_w, rec_w, f1_w, _ = prf("weighted")
     prec, rec, f1, _ = prf(None)
     out = {"Acc": accuracy_score(y, p), "Prec (w)": prec_w, "Rec (w)": rec_w, "F1 (w)": f1_w,
-           "Macro-F1": prf("macro")[2], "Bal. acc": balanced_accuracy_score(y, p)}
+           "Macro-F1": prf("macro")[2], "Bal. acc": rec.mean()}          # mean of the class-wise recalls
     for j, c in enumerate(CLASSES):
         out[f"F1 {c}"], out[f"P {c}"], out[f"R {c}"] = f1[j], prec[j], rec[j]
     return {m: float(v) for m, v in out.items()}
@@ -63,8 +69,8 @@ class Scored:
         self.y, self.p = truth, pred
         self.point = point_metrics(truth, pred)
         k = config.NUM_CLASSES
-        onehot = np.eye(k * k, dtype=np.float32)[truth * k + pred]
-        self.draws = metrics_from_confusion((weights @ onehot).reshape(-1, k, k))
+        onehot = np.eye(k * (k + 1), dtype=np.float32)[truth * (k + 1) + pred]
+        self.draws = metrics_from_confusion((weights @ onehot).reshape(-1, k, k + 1))
 
     def interval(self, metric: str):
         return np.percentile(self.draws[metric], [2.5, 97.5])

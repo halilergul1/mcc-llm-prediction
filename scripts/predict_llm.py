@@ -2,9 +2,9 @@
 
 The prompt is built with the same template as in training, at input length X, for every
 test customer with at least X + 1 transactions. Greedy decoding, at most 10 new tokens,
-served with vLLM (use --backend transformers where vLLM is not available). The raw output is
-kept in the `prediction` column and mapped to one of the four classes in `parsed_prediction`;
-unreadable outputs are counted and mapped to Other.
+served with vLLM (use --backend transformers where vLLM is not available). The answer, without
+its final period, is the prediction; an answer that is not one of the four categories counts
+as an error in the evaluation.
 
 Examples:
     python scripts/predict_llm.py --family qwen --model runs/qwen-full/merged
@@ -47,12 +47,11 @@ def main():
     all_prompts = [prompt for _, (_, prompt_list) in batches.items() for prompt in prompt_list]
     outputs = iter(llm.generate(args.model, all_prompts, backend=args.backend, family=args.family))
     for x, (samples, _) in batches.items():
-        raw = [" ".join(next(outputs).split()) for _ in samples]
-        parsed = [llm.parse_category(r) for r in raw]
-        unreadable = sum(v is None for v in parsed)
+        answers = [llm.answer(next(outputs)) for _ in samples]
         path = predictions.write(args.out / predictions.file_name(name, x), [s["customer_id"] for s in samples],
-                                 [s["response"].rstrip(".") for s in samples], [v or "Other" for v in parsed], raw)
-        print(f"length {x} (N = {len(samples):,}): {path}; unreadable outputs mapped to Other: {unreadable}")
+                                 [llm.answer(s["response"]) for s in samples], answers)
+        other = sum(a not in config.CATEGORIES for a in answers)
+        print(f"length {x} (N = {len(samples):,}): {path}; answers that are not a category: {other}")
 
 
 if __name__ == "__main__":

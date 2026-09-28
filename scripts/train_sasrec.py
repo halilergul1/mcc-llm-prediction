@@ -4,7 +4,11 @@ Two self-attention blocks with point-wise feed-forward layers, learned positiona
 and causal masking (PyTorch port of SASRec). Training uses the one-step-shifted target
 sequence, so every position predicts the next category and the loss is summed over positions;
 a four-way linear classifier replaces the ranking head. Only the last position is used at
-evaluation. Options that take several values run a grid search on the validation split.
+evaluation.
+
+Grid search: every combination of the values given (default: config.SASREC_GRID) is trained and
+the one with the best validation weighted F1 is kept. One value per option trains one model:
+    python scripts/train_sasrec.py --hidden-units 50 --dropout 0.2 --lr 1e-3
 """
 import argparse
 from pathlib import Path
@@ -19,11 +23,11 @@ def main():
     p.add_argument("--data", type=Path, default=Path("data/processed"))
     p.add_argument("--run-dir", type=Path, default=Path("runs/sasrec"))
     p.add_argument("--predictions", type=Path, default=Path("results/predictions"))
-    p.add_argument("--hidden-units", type=int, nargs="+", default=[config.SASREC["hidden_units"]])
+    p.add_argument("--hidden-units", type=int, nargs="+", default=list(config.SASREC_GRID["hidden_units"]))
     p.add_argument("--num-blocks", type=int, nargs="+", default=[config.SASREC["num_blocks"]])
     p.add_argument("--num-heads", type=int, nargs="+", default=[config.SASREC["num_heads"]])
-    p.add_argument("--dropout", type=float, nargs="+", default=[config.SASREC["dropout_rate"]])
-    p.add_argument("--lr", type=float, nargs="+", default=[config.SASREC_TRAINING["lr"]])
+    p.add_argument("--dropout", type=float, nargs="+", default=list(config.SASREC_GRID["dropout_rate"]))
+    p.add_argument("--lr", type=float, nargs="+", default=list(config.SASREC_GRID["lr"]))
     p.add_argument("--batch-size", type=int, nargs="+", default=[config.SASREC_TRAINING["batch_size"]])
     p.add_argument("--max-epochs", type=int, default=config.SASREC_TRAINING["max_epochs"])
     p.add_argument("--seed", type=int, default=config.SEED)

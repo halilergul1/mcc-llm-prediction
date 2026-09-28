@@ -31,6 +31,7 @@ EVAL_LENGTHS = (4, 7, 9, 14)   # a customer enters length X only with at least X
 DEMOGRAPHIC_FIELDS = ("gender", "age", "marital_status", "education", "occupation", "income_group")
 
 # --------------------------------------------------------------------------- sequential baselines (Section 3.6)
+# Configurations reported in the paper
 LSTM = {"hidden_size": 128}
 CNN = {}  # two convolutions (32 and 64 channels, kernel 3), adaptive average pooling, linear head
 SASREC = {"hidden_units": 50, "num_blocks": 2, "num_heads": 1, "dropout_rate": 0.2, "maxlen": 14}
@@ -39,6 +40,12 @@ DROS = {"hidden_size": 64, "state_size": 9, "dropout": 0.1}
 NN_TRAINING = {"batch_size": 64, "lr": 1e-3, "max_epochs": 30, "patience": 5}        # LSTM and CNN
 SASREC_TRAINING = {"batch_size": 128, "lr": 1e-3, "max_epochs": 30, "patience": 5}
 DROS_TRAINING = {"batch_size": 256, "lr": 1e-3, "weight_decay": 1e-6, "max_epochs": 50, "patience": 5}
+
+# Grids searched by the training scripts on the validation split (best weighted F1).
+# Each grid contains the configuration above.
+LSTM_GRID = {"hidden_size": (64, 128, 256), "lr": (1e-3, 5e-4)}
+CNN_GRID = {"lr": (1e-3, 5e-4), "batch_size": (64, 128)}
+SASREC_GRID = {"hidden_units": (50, 64), "dropout_rate": (0.2, 0.5), "lr": (1e-3, 5e-4)}
 DROS_GRID = {"alpha": (0.01, 0.1, 0.5, 1.0), "beta": (0.5, 1.0, 5.0)}
 DROS_REPO = "https://github.com/YangZhengyi98/DROS"
 DROS_COMMIT = "44ff99d"

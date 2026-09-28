@@ -16,6 +16,15 @@ def test_bootstrap_engine_equals_scikit_learn():
     assert np.isclose(point["Bal. acc"], balanced_accuracy_score(y, p))
 
 
+def test_answer_that_is_not_a_category_is_an_error():
+    y = np.array([0, 1, 2, 3, 2])
+    p = np.array([0, 1, 2, 3, evaluation.INVALID])
+    point = evaluation.point_metrics(y, p)
+    engine = evaluation.metrics_from_confusion(np.bincount(y * 5 + p, minlength=20).reshape(4, 5))
+    assert np.isclose(point["Acc"], 0.8) and np.isclose(point["R Grocery"], 0.5) and np.isclose(point["P Grocery"], 1.0)
+    assert all(np.isclose(engine[m], point[m]) for m in point)
+
+
 def test_paired_comparison_and_holm():
     rng = np.random.default_rng(1)
     y = rng.integers(0, 4, 300)

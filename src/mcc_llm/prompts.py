@@ -27,15 +27,6 @@ INSTRUCTION_FULL = (
 INSTRUCTION_SEQ = (
     "Based on the following chronological sequence of purchase categories, predict the next purchase category."
 )
-SYSTEM_FULL = (
-    "You are a helpful assistant that predicts the next purchase category based on customer data. "
-    "Reply with only the category name followed by a period. Valid categories: Grocery, Clothing, Gas stations, Other."
-)
-SYSTEM_SEQ = (
-    "You are a helpful assistant that predicts the next purchase category based on a sequence of past purchase "
-    "categories. Reply with only the category name followed by a period. "
-    "Valid categories: Grocery, Clothing, Gas stations, Other."
-)
 DEMOGRAPHIC_FIELDS = ("gender", "age", "marital_status", "education", "occupation", "income_group")
 
 
@@ -127,7 +118,7 @@ def task_input(ctx: Context, customer_id, categories, dates, amounts, profile=No
 
 def build_samples(windows: Windows, demographics: pd.DataFrame | None, ctx: Context) -> list[dict]:
     """One instruction sample per customer. `response` is the Instruction Output, e.g. 'Grocery.'."""
-    instruction, system = (INSTRUCTION_SEQ, SYSTEM_SEQ) if ctx.sequence_only else (INSTRUCTION_FULL, SYSTEM_FULL)
+    instruction = INSTRUCTION_SEQ if ctx.sequence_only else INSTRUCTION_FULL
     samples = []
     for i, cid in enumerate(windows.customer_id):
         profile = None
@@ -135,7 +126,6 @@ def build_samples(windows: Windows, demographics: pd.DataFrame | None, ctx: Cont
             profile = demographics.loc[cid]
         samples.append({
             "customer_id": cid,
-            "system": system,
             "instruction": instruction,
             "input": task_input(ctx, cid, windows.categories[i, :-1], windows.dates[i, :-1],
                                 windows.amounts[i, :-1], profile),

@@ -2,7 +2,8 @@
 
 One CSV per model and input length, `<name>_last<X>.csv`, or `<name>.csv` for the
 length-independent Random and Proportional baselines. Columns:
-    customer_id, ground_truth, prediction (raw model output), parsed_prediction (one of the four classes)
+    customer_id, ground_truth, prediction
+A prediction that is not one of the four categories counts as an error.
 """
 from __future__ import annotations
 
@@ -21,14 +22,10 @@ def to_names(codes) -> np.ndarray:
     return np.asarray(config.CATEGORIES)[np.asarray(codes, dtype=int)]
 
 
-def write(path: Path, customer_id, ground_truth, parsed, raw=None) -> Path:
+def write(path: Path, customer_id, ground_truth, prediction) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    df = pd.DataFrame({
-        "customer_id": customer_id,
-        "ground_truth": ground_truth,
-        "prediction": parsed if raw is None else raw,
-        "parsed_prediction": parsed,
-    }).sort_values("customer_id")
+    df = pd.DataFrame({"customer_id": customer_id, "ground_truth": ground_truth, "prediction": prediction})
+    df = df.sort_values("customer_id")
     df.to_csv(path, index=False)
     return path
 
@@ -49,8 +46,5 @@ def inventory(folder: Path) -> list[tuple[str, int | None, Path]]:
 
 
 def read(path: Path) -> pd.DataFrame:
-    df = pd.read_csv(path, keep_default_na=False)
-    bad = ~df["parsed_prediction"].isin(config.CATEGORIES)
-    if bad.any():
-        raise ValueError(f"{path}: {int(bad.sum())} predictions outside the four classes")
+    df = pd.read_csv(path, keep_default_na=False, dtype={"prediction": str})
     return df.sort_values("customer_id").reset_index(drop=True)

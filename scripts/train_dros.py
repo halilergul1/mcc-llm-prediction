@@ -2,7 +2,11 @@
 
 The SASRec backbone of the official DROS code, trained with its distributionally robust
 objective: binary cross-entropy on the target and one sampled negative class, plus alpha
-times the DRO term with temperature beta. alpha and beta are chosen on validation weighted F1.
+times the DRO term with temperature beta.
+
+Grid search: every combination of the values given (default: config.DROS_GRID, alpha x beta) is
+trained and the one with the best validation weighted F1 is kept. One value per option trains
+one model, e.g. --alpha 0.1 --beta 1.0.
 
 The official code has no licence file and is not included here. Get it first:
     git clone https://github.com/YangZhengyi98/DROS third_party/DROS && git -C third_party/DROS checkout 44ff99d
