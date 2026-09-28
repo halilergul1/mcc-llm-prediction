@@ -4,15 +4,22 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 from mcc_llm import evaluation
 
 
-def test_point_metrics_equal_scikit_learn():
+def test_bootstrap_engine_equals_scikit_learn():
     rng = np.random.default_rng(0)
     y, p = rng.integers(0, 4, 500), rng.integers(0, 4, 500)
-    s = evaluation.Scored(y, p, evaluation.bootstrap_weights(500, 200, rng))
-    assert np.isclose(s.point["Acc"], accuracy_score(y, p))
-    assert np.isclose(s.point["F1 (w)"], f1_score(y, p, average="weighted"))
-    assert np.isclose(s.point["Macro-F1"], f1_score(y, p, average="macro"))
-    assert np.isclose(s.point["Bal. acc"], balanced_accuracy_score(y, p))
+    engine = evaluation.metrics_from_confusion(np.bincount(y * 4 + p, minlength=16).reshape(4, 4))
+    point = evaluation.point_metrics(y, p)
+    assert all(np.isclose(engine[m], point[m]) for m in point)
+    assert np.isclose(point["Acc"], accuracy_score(y, p))
+    assert np.isclose(point["F1 (w)"], f1_score(y, p, average="weighted"))
+    assert np.isclose(point["Macro-F1"], f1_score(y, p, average="macro"))
+    assert np.isclose(point["Bal. acc"], balanced_accuracy_score(y, p))
 
 
-def test_holm():
+def test_paired_comparison_and_holm():
+    rng = np.random.default_rng(1)
+    y = rng.integers(0, 4, 300)
+    weights = evaluation.bootstrap_weights(300, 500, rng)
+    same = evaluation.compare(evaluation.Scored(y, y, weights), evaluation.Scored(y, y, weights), ["F1 (w)"])
+    assert same["Diff F1 (w)"] == 0 and same["McNemar p"] == 1.0
     assert np.allclose(evaluation.holm([0.01, 0.04, 0.03, 0.005]), [0.03, 0.06, 0.06, 0.02])

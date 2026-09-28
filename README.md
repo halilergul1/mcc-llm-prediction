@@ -72,14 +72,18 @@ python scripts/predict_llm.py --family qwen --model runs/qwen-full/merged
 python scripts/train_mistral.py
 python scripts/predict_llm.py --family mistral --model runs/mistral-full/merged
 
-# 4. Metrics and paired tests
-python scripts/evaluate.py
-python scripts/evaluate.py --fixed-population --out results/metrics_fixed_population
+# 4. Metrics and paired tests: every length, each LLM against the five baselines (Holm), single pairs
+python scripts/evaluate.py --pairs qwen-full:qwen-raw qwen-seq:qwen-raw mistral-full:mistral-raw \
+    qwen-full:qwen-seq qwen-full-no-id:qwen-full qwen-full-minus-gender:qwen-full
+python scripts/evaluate.py --fixed-population --out results/metrics_fixed_population \
+    --pairs qwen-full@9:qwen-full@4 qwen-full@9:qwen-full@14
 ```
 
 Outputs: `runs/` (checkpoints, adapters, merged models), `results/predictions/` (one CSV per model and
-length with `customer_id`, `ground_truth`, `prediction`, `parsed_prediction`) and `results/metrics/`.
-Baseline options that take several values (for example `--lr 1e-3 5e-4`) run a grid search on the
+length with `customer_id`, `ground_truth`, `prediction`, `parsed_prediction`) and `results/metrics/`
+(`metrics.csv`, `confusion.csv`, `significance.csv`, `pairs.csv`, and `factorial.csv` when the eight
+condition files exist). `python scripts/evaluate.py --help` explains the pair syntax, including averages
+over training seeds. Baseline options that take several values (for example `--lr 1e-3 5e-4`) run a grid search on the
 validation split.
 
 ## Ablations

@@ -1,13 +1,16 @@
 """Metrics, paired bootstrap, exact McNemar test and Holm correction (Section 3.8).
 
-Every metric is computed from the 4 x 4 confusion matrix, so the 10,000 bootstrap
-resamples of the test customers (drawn once and shared by all models) give the
-confusion matrix of every resample at once. Point estimates equal scikit-learn's.
+Point estimates come from scikit-learn. For the 10,000 bootstrap resamples of the test
+customers (drawn once and shared by all models), every metric is computed from the 4 x 4
+confusion matrix of each resample, which gives the same values as scikit-learn.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 from scipy.stats import binomtest
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, precision_recall_fscore_support
 
 from . import config
 
@@ -40,14 +43,27 @@ def bootstrap_weights(n: int, n_boot: int = config.N_BOOTSTRAP, rng=None) -> np.
     return rng.multinomial(n, np.full(n, 1.0 / n), size=n_boot).astype(np.float32)
 
 
+def point_metrics(y, p) -> dict:
+    """All reported metrics of one model, with scikit-learn."""
+    labels = list(range(config.NUM_CLASSES))
+    prf = lambda average: precision_recall_fscore_support(y, p, labels=labels, average=average, zero_division=0)
+    prec_w, rec_w, f1_w, _ = prf("weighted")
+    prec, rec, f1, _ = prf(None)
+    out = {"Acc": accuracy_score(y, p), "Prec (w)": prec_w, "Rec (w)": rec_w, "F1 (w)": f1_w,
+           "Macro-F1": prf("macro")[2], "Bal. acc": balanced_accuracy_score(y, p)}
+    for j, c in enumerate(CLASSES):
+        out[f"F1 {c}"], out[f"P {c}"], out[f"R {c}"] = f1[j], prec[j], rec[j]
+    return {m: float(v) for m, v in out.items()}
+
+
 class Scored:
     """Point metrics and bootstrap draws of one model on one population (customers in fixed order)."""
 
     def __init__(self, truth: np.ndarray, pred: np.ndarray, weights: np.ndarray):
         self.y, self.p = truth, pred
-        onehot = np.eye(config.NUM_CLASSES ** 2, dtype=np.float32)[truth * config.NUM_CLASSES + pred]
+        self.point = point_metrics(truth, pred)
         k = config.NUM_CLASSES
-        self.point = {m: float(v) for m, v in metrics_from_confusion(onehot.sum(0).reshape(k, k)).items()}
+        onehot = np.eye(k * k, dtype=np.float32)[truth * k + pred]
         self.draws = metrics_from_confusion((weights @ onehot).reshape(-1, k, k))
 
     def interval(self, metric: str):
@@ -68,11 +84,23 @@ def compare(a: Scored, b: Scored, metrics) -> dict:
         lo, hi = np.percentile(d, [2.5, 97.5])
         out[f"Diff {m}"], out[f"Diff {m} CI low"], out[f"Diff {m} CI high"] = est, lo, hi
         out[f"Diff {m} p"] = max(float((np.abs(d - est) >= abs(est)).mean()), 1.0 / len(d))
+    if a.p is None or b.p is None:                    # averaged models: no per-customer predictions
+        out["McNemar b"] = out["McNemar c"] = out["McNemar p"] = np.nan
+        return out
     ca, cb = a.p == a.y, b.p == b.y
     b10, b01 = int((ca & ~cb).sum()), int((~ca & cb).sum())
     out["McNemar b"], out["McNemar c"] = b10, b01
     out["McNemar p"] = binomtest(min(b10, b01), b10 + b01, 0.5).pvalue if b10 + b01 else 1.0
     return out
+
+
+def mean_of(scored: list) -> Scored | SimpleNamespace:
+    """Average metrics of several models on the same customers, e.g. three training seeds."""
+    if len(scored) == 1:
+        return scored[0]
+    return SimpleNamespace(y=None, p=None,
+                           point={m: float(np.mean([s.point[m] for s in scored])) for m in scored[0].point},
+                           draws={m: np.mean([s.draws[m] for s in scored], axis=0) for m in scored[0].draws})
 
 
 def holm(pvalues) -> np.ndarray:
