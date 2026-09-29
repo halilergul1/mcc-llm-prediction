@@ -14,6 +14,12 @@ def transactions():
     return df
 
 
+def test_mcc_map():
+    mcc = pd.Series([5411, 5462, 5812, 5814, 5541, 5542, 5983, 5651, 5137, 5941, 4812])
+    assert list(data.map_categories(mcc)) == ["Grocery", "Grocery", "Other", "Other", "Gas stations", "Gas stations",
+                                              "Gas stations", "Clothing", "Clothing", "Clothing", "Other"]
+
+
 def test_cohort_filters():
     assert list(data.eligible_customers(transactions())) == [1]
 

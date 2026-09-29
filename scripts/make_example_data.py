@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-MCC = {"Grocery": [5411, 5499, 5812], "Clothing": [5651, 5691], "Gas stations": [5541], "Other": [4812, 5732, 5912, 6300]}
+MCC = {"Grocery": [5411, 5462, 5499], "Clothing": [5651, 5691], "Gas stations": [5541], "Other": [4812, 5732, 5812, 5912]}
 PROFILE = {
     "gender": ["male", "female"],
     "marital_status": ["married", "single", "divorced"],

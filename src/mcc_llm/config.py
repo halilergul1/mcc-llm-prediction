@@ -8,12 +8,14 @@ as defaults; most can be changed on the command line.
 CATEGORIES = ("Clothing", "Gas stations", "Grocery", "Other")  # class codes 0, 1, 2, 3
 NUM_CLASSES = len(CATEGORIES)
 
-# Four-digit merchant category codes (MCC) of the three named classes.
-# Grocery covers food stores and eating places. Every other code is Other.
+# Four-digit merchant category codes (MCC, ISO 18245) of the three named classes; every other code is Other.
+# Gas stations: service stations, automated fuel dispensers and fuel dealers.
+# Clothing: apparel and accessory stores (5600-5699), wholesale apparel (5137, 5139) and sporting goods (5941).
+# Grocery: food stores (5400-5499). Eating places (5811-5814) are Other.
 MCC_CATEGORIES = {
-    "Grocery": (5411, 5441, 5499, 5812, 5814),
-    "Clothing": (5137, 5611, 5621, 5631, 5651, 5655, 5661, 5691, 5699),
-    "Gas stations": (5541,),
+    "Gas stations": (5541, 5542, 5983),
+    "Clothing": tuple(range(5600, 5700)) + (5137, 5139, 5941),
+    "Grocery": tuple(range(5400, 5500)),
 }
 
 # --------------------------------------------------------------------------- cohorts (Sections 3.1 and 3.2)
