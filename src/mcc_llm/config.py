@@ -95,7 +95,7 @@ SFT = {
     "bf16": True,
     "max_length": 512,
 }
-CHECKPOINT_STEPS = 500         # a checkpoint every 500 steps (about 45 minutes of a Qwen run), so training can resume
+CHECKPOINT_STEPS = 500         # a checkpoint every 500 steps, so training can resume
 MAX_NEW_TOKENS = 10            # greedy free generation, used as a check; predictions come from label scoring
 FEW_SHOT_PER_CLASS = 4         # 16-shot prompts for the raw models
 

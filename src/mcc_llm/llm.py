@@ -5,10 +5,10 @@ an assistant turn with the Instruction Output, through each model's chat templat
 the template's thinking mode is disabled. The loss is the log-likelihood of the Instruction
 Output tokens (Equation 1).
 
-Training uses an 8-bit copy of the frozen base model (bitsandbytes) with PEFT and TRL.
-For prediction the adapter is merged into the bf16 base weights and the model scores the four
-answers (label scoring, below): the prediction is the most probable answer, and the four
-probabilities are kept. Free greedy generation (at most 10 new tokens) is a check only.
+Training uses the frozen base model in bf16, without quantisation, with PEFT and TRL; an 8-bit copy
+(bitsandbytes) is an option. For prediction the adapter is merged into the same bf16 base weights and
+the model scores the four answers (label scoring, below): the prediction is the most probable answer,
+and the four probabilities are kept. Free greedy generation (at most 10 new tokens) is a check only.
 """
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def answer(text: str) -> str:
 
 # --------------------------------------------------------------------------- fine-tuning
 def finetune(model_id: str, family: str, samples: list[dict], output_dir: Path, seed: int = config.SEED,
-             load_in_8bit: bool = True, max_steps: int = -1, max_length: int | None = None) -> Path:
+             load_in_8bit: bool = False, max_steps: int = -1, max_length: int | None = None) -> Path:
     """Train a LoRA adapter with the configuration of Table 2; returns the adapter directory.
 
     `max_length` replaces config.SFT["max_length"] (needed for windows longer than the training length).
@@ -131,6 +131,10 @@ def finetune(model_id: str, family: str, samples: list[dict], output_dir: Path, 
            "lora_wrapped_modules": len(wrapped), "lora_module_types": suffixes,
            "load_in_8bit": load_in_8bit, "lora": config.LORA, "training": sft, "steps": trainer.state.global_step,
            "train_loss": result.training_loss, "wall_clock_s": round(time.perf_counter() - start, 1)}
+    if torch.cuda.is_available():
+        log["peak_gpu_memory_gb"] = round(torch.cuda.max_memory_allocated() / 2**30, 1)
+        print(f"peak GPU memory: {log['peak_gpu_memory_gb']} GB; "
+              f"{log['wall_clock_s'] / max(log['steps'], 1):.1f} s per step", flush=True)
     (output_dir / "training_log.json").write_text(json.dumps(log, indent=1))
     return adapter_dir
 

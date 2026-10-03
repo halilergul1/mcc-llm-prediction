@@ -178,7 +178,7 @@ All values are in `src/mcc_llm/config.py`.
 | | |
 |---|---|
 | LoRA | r 32, alpha 64, dropout 0.05; q, k, v, o, gate, up and down projections |
-| Base weights | 8-bit (bitsandbytes), frozen |
+| Base weights | bf16, frozen, no quantisation |
 | Optimisation | paged AdamW 8-bit, learning rate 2e-4, cosine decay, 100 warm-up steps, weight decay 0.01, gradient clipping 0.3 |
 | Batch and epochs | 2 per device x 8 accumulation steps (16); 3 epochs, final checkpoint, no early stopping |
 | Other | bf16, maximum length 512 tokens, seeds 42, 2, 3 |

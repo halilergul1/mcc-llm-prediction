@@ -1,11 +1,11 @@
 """LoRA fine-tuning of Qwen3.5-9B on the training bank (Sections 3.3 to 3.5, Table 2).
 
 One instruction sample per training customer: the last 9 transactions form the Task Input
-and the 10th, most recent one is the Instruction Output. The base model is loaded in 8 bits
-and frozen; thinking is disabled in the chat template. After training, the adapter is merged
-into the bf16 base weights (<run-dir>/merged) for scoring with scripts/predict_llm.py; with
---no-merge only the adapter is kept and scripts/merge.py merges it later. A run that stopped
-resumes from its last checkpoint when the same command is started again.
+and the 10th, most recent one is the Instruction Output. The base model is loaded in bf16,
+without quantisation, and frozen; thinking is disabled in the chat template. After training, the
+adapter is merged into the bf16 base weights (<run-dir>/merged) for scoring with
+scripts/predict_llm.py; with --no-merge only the adapter is kept and scripts/merge.py merges it
+later. A run that stopped resumes from its last checkpoint when the same command is started again.
 
 Examples:
     python scripts/train_qwen.py                                   # Q-full
@@ -31,7 +31,7 @@ def main():
     p.add_argument("--drop-field", choices=prompts.DEMOGRAPHIC_FIELDS, help="demographic field removed from the prompt")
     p.add_argument("--seed", type=int, default=config.SEED)
     p.add_argument("--run-dir", type=Path, help="default: runs/<family>-<condition>[-minus-<field>][-seed<seed>]")
-    p.add_argument("--no-8bit", action="store_true", help="load the base model in bf16 instead of 8 bits")
+    p.add_argument("--load-in-8bit", action="store_true", help="load the base model in 8 bits (bitsandbytes) instead of bf16")
     p.add_argument("--no-merge", action="store_true", help="keep only the LoRA adapter")
     p.add_argument("--max-steps", type=int, default=-1, help="stop after this many steps (quick checks only)")
     p.add_argument("--variable-lengths", type=int, nargs=2, metavar=("MIN", "MAX"),
@@ -51,7 +51,7 @@ def main():
     print(f"{len(samples):,} training samples; first Task Input:\n{samples[0]['input']}\n", flush=True)
 
     adapter = llm.finetune(args.model_id, FAMILY, samples, run_dir, seed=args.seed,
-                           load_in_8bit=not args.no_8bit, max_steps=args.max_steps, max_length=args.max_length)
+                           load_in_8bit=args.load_in_8bit, max_steps=args.max_steps, max_length=args.max_length)
     print(f"adapter: {adapter}")
     if not args.no_merge:
         print(f"merged model: {llm.merge_adapter(args.model_id, adapter, run_dir / 'merged', FAMILY)}")
