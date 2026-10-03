@@ -9,10 +9,14 @@ BEFORE any LLM is scored on `bank_b_confirm`. The paper and the response letter 
 its date. Nothing below may change after the first scoring of a confirmation split; any later analysis is
 reported as exploratory.
 
-- Pipeline commit: `670da5e` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
+- Pipeline commit: `779e5e6` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
 - Amended on 2026-10-03, before any model was scored on a confirmation split: the non-LLM models are scored on
   the confirmation splits when they are trained, not after the freeze (section 6). The first version of this
   plan is commit `77108bc`.
+- Amended on 2026-10-03, after the non-LLM models were trained and scored (pipeline commit `670da5e`) and
+  before any LLM run of the study was completed: the LoRA adapters are trained on the bf16 base weights
+  without quantisation, not on an 8-bit copy. The change shortens the training; the non-LLM code is the same
+  in both commits.
 
 ## 1. Data
 
