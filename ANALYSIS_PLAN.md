@@ -1,12 +1,18 @@
 # Analysis plan (pre-registered) — manuscript 9171855, revision v3
 
 This plan was committed on 2026-10-03, before the training runs of this revision; only tests of the pipeline
-on the validation, in-bank and development splits preceded it. It is frozen with the tag `v3-prereg`, which
-is set together with the manifest of the trained models (section 6) BEFORE any model is scored on
-`bank_b_confirm`. The paper and the response letter cite the tagged commit and its date. Nothing below may
-change after scoring; any later analysis is reported as exploratory.
+on the validation, in-bank and development splits preceded it. The settings of every model, the LLM runs
+included, are fixed by the pipeline commit below. The non-LLM models are scored on every split, the
+confirmation splits included, when they are trained. The LLMs are scored on the confirmation splits once,
+after the freeze: the tag `v3-prereg` is set together with the manifest of the trained models (section 6)
+BEFORE any LLM is scored on `bank_b_confirm`. The paper and the response letter cite the tagged commit and
+its date. Nothing below may change after the first scoring of a confirmation split; any later analysis is
+reported as exploratory.
 
-- Pipeline commit: `9026a3d` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
+- Pipeline commit: `670da5e` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
+- Amended on 2026-10-03, before any model was scored on a confirmation split: the non-LLM models are scored on
+  the confirmation splits when they are trained, not after the freeze (section 6). The first version of this
+  plan is commit `77108bc`.
 
 ## 1. Data
 
@@ -64,13 +70,17 @@ change after scoring; any later analysis is reported as exploratory.
 
 - Main tables: seed means ± SD, three decimals. The minimum detectable effect (`Diff … MDE`) beside every
   non-significant difference.
-- No customer is excluded after scoring. No model, prompt or hyperparameter changes after scoring.
+- No customer is excluded after scoring. No model, prompt or hyperparameter changes after the first scoring of
+  a confirmation split; a change forced by a technical failure is reported in the paper as a deviation.
 
 ## 6. Freeze
 
 - Before training: this plan and `results/MANIFEST_data` are committed.
-- Until the freeze, models are scored only on val, bank_a_test and bank_b_dev.
-- After training, before any confirmation scoring: `python scripts/manifest.py runs --out results/MANIFEST_models`
-  → commit the file and tag the commit `v3-prereg`.
+- Non-LLM models: scored on every split when they are trained (`scripts/train_baselines.sh`). Their grids,
+  seeds and selection rule are fixed by the pipeline commit, and the comparator of the primary endpoint is
+  chosen on the validation split (section 2).
+- LLMs: until the freeze, scored only on val, bank_a_test and bank_b_dev.
+- After training, before any LLM is scored on a confirmation split: `python scripts/manifest.py runs --out
+  results/MANIFEST_models` → commit the file and tag the commit `v3-prereg`.
 - After scoring (`scripts/score_all.sh confirm`): `python scripts/manifest.py results/predictions --out
   results/MANIFEST_predictions` → commit the file.
