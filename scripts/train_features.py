@@ -9,8 +9,8 @@ there are no seed replicates. The fitted models are saved in --run-dir. Outputs,
 gbdt-seq, gbdt-full, logit-seq, logit-full (with class probabilities).
 
     python scripts/train_features.py
-After the freeze, score the confirmation splits from the saved models:
-    python scripts/train_features.py --score-only --splits bank_b_confirm bank_b_unfiltered
+Without training, from the saved models:
+    python scripts/train_features.py --score-only --splits bank_b_confirm
 """
 import argparse
 import json
@@ -62,8 +62,8 @@ def main():
     p.add_argument("--data", type=Path, default=Path("data/processed"))
     p.add_argument("--out", type=Path, default=Path("results/predictions"))
     p.add_argument("--run-dir", type=Path, default=Path("runs/features"))
-    p.add_argument("--splits", nargs="+", default=list(config.PRE_SPLITS),
-                   help="evaluation splits to score (default: the splits that may be scored before the freeze)")
+    p.add_argument("--splits", nargs="+", default=list(config.EVAL_SPLITS),
+                   help="evaluation splits to score (default: all)")
     p.add_argument("--lengths", type=int, nargs="+", default=list(config.EVAL_LENGTHS))
     p.add_argument("--seed", type=int, default=config.SEED)
     p.add_argument("--score-only", action="store_true",

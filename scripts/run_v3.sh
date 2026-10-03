@@ -19,7 +19,7 @@ python scripts/manifest.py data/processed --out results/MANIFEST_data
 #     On the GPU machine, after copying data/processed:  python scripts/manifest.py data/processed --check results/MANIFEST_data
 
 # --- 2. non-LLM models (CPU or GPU gaps; about 13 GPU-hours with the full grids) -----------------------
-#     Each script trains, saves every model in runs/ and scores val, bank_a_test and bank_b_dev.
+#     Each script trains, saves every model in runs/ and scores every evaluation split.
 #     scripts/train_baselines.sh runs the six of them in this order, with logs, and can be restarted.
 python scripts/run_baselines.py
 python scripts/train_features.py
@@ -30,20 +30,20 @@ python scripts/train_dros.py                  # needs third_party/DROS at commit
 
 # --- 3. GPU queue (priorities A, B, C, D in queue_5090.txt; resumable; skips finished runs) -----------
 mkdir -p logs
-nohup scripts/queue.sh queue_5090.txt > logs/queue_5090.out 2>&1 &
+nohup scripts/queue.sh queue_5090.txt >> logs/queue_5090.out 2>&1 &
 # follow it with: tail -f logs/queue_5090.out   and   tail -f logs/qwen-full.log
 
-# --- 4. scoring that is allowed before the freeze ------------------------------------------------------
+# --- 4. LLM scoring that is allowed before the freeze --------------------------------------------------
 scripts/score_all.sh pre          # LLMs on val, bank_a_test and bank_b_dev (may run on a second GPU during training)
 scripts/score_all.sh generation   # free generation on bank_b_dev: answers that are not a category (needs vLLM)
 
-# --- 5. the freeze: every model is trained and selected; nothing has been scored on bank_b_confirm ---
+# --- 5. the freeze: every model is trained and selected; no LLM has been scored on bank_b_confirm ----
 python scripts/manifest.py runs --out results/MANIFEST_models      # adapters and saved models; no merged/ folders
 git add results/MANIFEST_models && git commit -m "Freeze: manifest of the trained models" && git tag v3-prereg
 git push origin main v3-prereg
 
-# --- 6. confirmation scoring, once ---------------------------------------------------------------------
-scripts/score_all.sh confirm      # every model on bank_b_confirm and bank_b_unfiltered
+# --- 6. confirmation scoring of the LLMs, once ---------------------------------------------------------
+scripts/score_all.sh confirm      # the LLMs on bank_b_confirm and bank_b_unfiltered
 python scripts/manifest.py results/predictions --out results/MANIFEST_predictions
 
 # --- 7. evaluation -------------------------------------------------------------------------------------

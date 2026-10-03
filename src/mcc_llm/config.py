@@ -31,10 +31,11 @@ N_BANK_A_TEST = 10_000         # in-bank test customers, never in training or va
 N_TEST = 1_000                 # prepare_data.py --earlier-rule only: size of the single test draw
 SEED = 42
 
-# Evaluation splits. Models are scored on the first group while they are developed; the second group is
-# scored once, after the freeze of ANALYSIS_PLAN.md.
+# Evaluation splits. The non-LLM models are scored on all of them when they are trained. The LLMs are scored
+# on the first group while they are trained and on the second group once, after the freeze of ANALYSIS_PLAN.md.
 PRE_SPLITS = ("val", "bank_a_test", "bank_b_dev")
 CONFIRM_SPLITS = ("bank_b_confirm", "bank_b_unfiltered")
+EVAL_SPLITS = PRE_SPLITS + CONFIRM_SPLITS
 
 # --------------------------------------------------------------------------- protocol (Section 3.8)
 TRAIN_LENGTH = 9               # 9 input transactions; the 10th, most recent one is the target

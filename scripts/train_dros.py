@@ -10,8 +10,8 @@ trained with the first seed, and the one with the best validation score (config.
 kept and refitted with every other seed. One value per option trains one configuration,
 e.g. --alpha 0.1 --beta 1.0.
 
-Every model is saved in --run-dir. After the freeze, score the confirmation splits from the saved models:
-    python scripts/train_dros.py --score-only --splits bank_b_confirm bank_b_unfiltered
+Every model is saved in --run-dir and scored on every evaluation split. Without training, from the saved models:
+    python scripts/train_dros.py --score-only --splits bank_b_confirm
 
 The official code has no licence file and is not included here. Get it first:
     git clone https://github.com/YangZhengyi98/DROS third_party/DROS && git -C third_party/DROS checkout 44ff99d

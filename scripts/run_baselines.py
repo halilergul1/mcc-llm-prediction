@@ -5,8 +5,6 @@ Averaging (most frequent category; ties go to the class seen most recently), las
 first-order Markov chain (fitted on the training windows) are written per length.
 
     python scripts/run_baselines.py
-After the freeze, the confirmation splits:
-    python scripts/run_baselines.py --splits bank_b_confirm bank_b_unfiltered
 """
 import argparse
 from pathlib import Path
@@ -18,8 +16,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--data", type=Path, default=Path("data/processed"))
     p.add_argument("--out", type=Path, default=Path("results/predictions"))
-    p.add_argument("--splits", nargs="+", default=list(config.PRE_SPLITS),
-                   help="evaluation splits to score (default: the splits that may be scored before the freeze)")
+    p.add_argument("--splits", nargs="+", default=list(config.EVAL_SPLITS),
+                   help="evaluation splits to score (default: all)")
     p.add_argument("--lengths", type=int, nargs="+", default=list(config.EVAL_LENGTHS))
     p.add_argument("--averaging-ties", choices=["recency", "lowest"], default="recency")
     p.add_argument("--seed", type=int, default=config.SEED)

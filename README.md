@@ -61,7 +61,7 @@ distinct categories among the 9 transactions before the target. The filter never
 | `train`, `val` | 40,000 and 10,000 eligible Bank A customers | training; every tuning and selection decision |
 | `bank_a_test` | 10,000 other eligible Bank A customers | in-bank reference |
 | `bank_b_dev` | the test customers of earlier evaluations | checks only; no modelling decision |
-| `bank_b_confirm` | every other eligible Bank B customer | the primary evaluation, scored once |
+| `bank_b_confirm` | every other eligible Bank B customer | the primary evaluation; the LLMs are scored on it once, after the freeze |
 | `bank_b_unfiltered` | Bank B customers with 10 or more transactions, without the category filter | sensitivity analysis |
 
 ## Models
@@ -84,8 +84,8 @@ probable one is the prediction, and the four probabilities are stored. Raw model
 zero-shot and with 16 fixed training examples. Free generation is used only to count answers that are not
 a category.
 
-Hyperparameters are selected on `val` by macro-F1. The baseline scripts save every model; `--score-only`
-scores saved models on further splits without training.
+Hyperparameters are selected on `val` by macro-F1. The baseline scripts save every model and score every
+split; `--score-only` scores saved models again without training.
 
 ## Install
 
@@ -116,19 +116,19 @@ python scripts/prepare_data.py \
     --dev-ids old/earlier_test_customers.csv --exclude old/earlier_test_customers.csv
 python scripts/manifest.py data/processed --out results/MANIFEST_data
 
-# 2. non-LLM models: train, save, and score val, bank_a_test and bank_b_dev
+# 2. non-LLM models: train, save, and score every split
 scripts/train_baselines.sh          # run_baselines.py, train_features.py, train_lstm.py, train_cnn.py, train_sasrec.py, train_dros.py
 
 # 3. LLM fine-tuning queue (resumable; one job at a time)
 mkdir -p logs && nohup scripts/queue.sh queue_5090.txt > logs/queue_5090.out 2>&1 &
 
-# 4. scoring allowed before the freeze
+# 4. LLM scoring allowed before the freeze
 scripts/score_all.sh pre            # LLMs on val, bank_a_test, bank_b_dev
 scripts/score_all.sh generation     # free generation on bank_b_dev (vLLM, or GEN_BACKEND=transformers)
 
-# 5. freeze, then the confirmation scoring, once
+# 5. freeze, then the LLMs on the confirmation splits, once
 python scripts/manifest.py runs --out results/MANIFEST_models       # commit it, tag v3-prereg
-scripts/score_all.sh confirm        # every model on bank_b_confirm and bank_b_unfiltered
+scripts/score_all.sh confirm        # the LLMs on bank_b_confirm and bank_b_unfiltered
 python scripts/manifest.py results/predictions --out results/MANIFEST_predictions
 
 # 6. evaluation

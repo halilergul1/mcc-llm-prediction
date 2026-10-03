@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Train every non-LLM model, one after the other, and score the splits that may be scored before the freeze
-# (val, bank_a_test, bank_b_dev). Each step logs to logs/<step>.log.
+# Train every non-LLM model, one after the other, and score every evaluation split (val, bank_a_test,
+# bank_b_dev, bank_b_confirm, bank_b_unfiltered). Each step logs to logs/<step>.log.
 #
-#   mkdir -p logs && nohup scripts/train_baselines.sh > logs/train_baselines.out 2>&1 &
+#   mkdir -p logs && nohup scripts/train_baselines.sh >> logs/train_baselines.out 2>&1 &
 #
 # The script can be started again after a crash: a finished step is skipped, and a step whose models are
-# already saved only scores them again instead of retraining. The confirmation splits are not scored here;
-# scripts/score_all.sh confirm does that after the freeze.
+# already saved only scores them again instead of retraining.
 set -uo pipefail
 [[ -f data/processed/train_transactions.csv ]] || { echo "data/processed is missing: copy the prepared splits here first"; exit 2; }
 [[ -f third_party/DROS/SASRec_bce.py ]] || echo "warning: third_party/DROS is missing, so the dros-sasrec step will fail (README, Install)"

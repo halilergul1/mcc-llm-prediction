@@ -3,13 +3,13 @@
 #
 #   scripts/score_all.sh pre         LLMs on val, bank_a_test and bank_b_dev. Allowed BEFORE the freeze, e.g. on a
 #                                    second GPU while the first is still training (none of these is the
-#                                    confirmation data). The non-LLM models score these splits when they are trained.
+#                                    confirmation data). The non-LLM models score every split when they are trained.
 #   scripts/score_all.sh generation  free generation of the core LLMs on bank_b_dev at length 9: counts answers
 #                                    that are not a category. Allowed before the freeze. It uses vLLM;
 #                                    GEN_BACKEND=transformers scripts/score_all.sh generation works without it.
-#   scripts/score_all.sh confirm     every model, LLM or not, on bank_b_confirm and bank_b_unfiltered.
-#                                    ONLY AFTER the freeze: ANALYSIS_PLAN.md and results/MANIFEST_models committed
-#                                    and tagged v3-prereg.
+#   scripts/score_all.sh confirm     the LLMs on bank_b_confirm and bank_b_unfiltered. ONLY AFTER the freeze:
+#                                    ANALYSIS_PLAN.md and results/MANIFEST_models committed and tagged v3-prereg.
+#                                    A non-LLM model that is missing on these splits is scored from its saved models.
 #
 # Lengths: bank_b_confirm and bank_b_dev at 4, 7, 9 and 14; val, bank_a_test and bank_b_unfiltered at 9
 # (what the analysis plan uses them for). A model already scored for a phase is skipped, so a crashed run
@@ -19,7 +19,7 @@ phase=${1:?usage: scripts/score_all.sh pre|generation|confirm}
 [[ $phase == pre || $phase == generation || $phase == confirm ]] || { echo "unknown phase: $phase"; exit 2; }
 mkdir -p logs
 P=results/predictions
-if [[ $phase == confirm ]]; then      # the confirmation data are scored only after the freeze (ANALYSIS_PLAN.md, section 6)
+if [[ $phase == confirm ]]; then      # the LLMs are scored on the confirmation data only after the freeze (ANALYSIS_PLAN.md, section 6)
   if [[ ! -f results/MANIFEST_models ]] || ! git rev-parse -q --verify refs/tags/v3-prereg > /dev/null; then
     echo "the freeze comes first: commit results/MANIFEST_models and set the tag v3-prereg"; exit 1
   fi
@@ -61,7 +61,7 @@ if [[ $phase == generation ]]; then
   exit 0
 fi
 
-# non-LLM models on the confirmation splits, from the models saved at training time
+# non-LLM models are scored on the confirmation splits when they are trained; one that is missing is scored now
 if [[ $phase == confirm ]]; then
   confirm=(--splits bank_b_confirm bank_b_unfiltered)
   [[ -f $P/bank_b_unfiltered/markov1_last9.csv ]] || python scripts/run_baselines.py "${confirm[@]}" >> logs/score_baselines.log 2>&1

@@ -9,8 +9,8 @@ is trained with the first seed, and the one with the best validation score (conf
 kept and refitted with every other seed. One value per option trains one configuration:
     python scripts/train_lstm.py --hidden-size 128 --lr 1e-3 --class-weights none
 
-Every model is saved in --run-dir. After the freeze, score the confirmation splits from the saved models:
-    python scripts/train_lstm.py --score-only --splits bank_b_confirm bank_b_unfiltered
+Every model is saved in --run-dir and scored on every evaluation split. Without training, from the saved models:
+    python scripts/train_lstm.py --score-only --splits bank_b_confirm
 """
 import argparse
 

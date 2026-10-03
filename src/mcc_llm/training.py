@@ -9,8 +9,8 @@ DROS        the official DROS objective on the SASRec backbone: BCE on one sampl
 The cross-entropy is either unweighted or weighted by inverse class frequency; this is a grid option
 (config.CLASS_WEIGHTS). Hyperparameters with several candidate values are chosen on the validation
 split by config.SELECTION_METRIC (macro-F1). The selected configuration is then refitted with every
-seed of config.BASELINE_SEEDS; every model is saved, so the confirmation splits can be scored later
-from the saved models (run() with score_only).
+seed of config.BASELINE_SEEDS; every model is saved, so it can be scored again later without training
+(run() with score_only).
 """
 from __future__ import annotations
 
@@ -293,7 +293,7 @@ def run(arch: str, name: str, configs: list[dict], fit, args, dros_dir=None) -> 
     `fit(cfg, train, val, seed)` trains one model. The grid `configs` is searched on the validation split
     with the first seed; the selected configuration is then refitted with every other seed. Every model
     is saved in args.run_dir and scored on args.splits. With args.score_only nothing is trained: the saved
-    models are loaded and scored on args.splits (the confirmation splits, after the freeze).
+    models are loaded and scored on args.splits.
     """
     if args.score_only:
         fitted = {seed: load_model(args.run_dir, seed, args.device, dros_dir)[1] for seed in args.seeds}
@@ -326,8 +326,8 @@ def add_run_arguments(p, run_dir: str) -> None:
     p.add_argument("--data", type=Path, default=Path("data/processed"))
     p.add_argument("--run-dir", type=Path, default=Path(run_dir))
     p.add_argument("--predictions", type=Path, default=Path("results/predictions"))
-    p.add_argument("--splits", nargs="+", default=list(config.PRE_SPLITS),
-                   help="evaluation splits to score (default: the splits that may be scored before the freeze)")
+    p.add_argument("--splits", nargs="+", default=list(config.EVAL_SPLITS),
+                   help="evaluation splits to score (default: all)")
     p.add_argument("--seeds", type=int, nargs="+", default=list(config.BASELINE_SEEDS),
                    help="the grid is searched with the first seed; the selected configuration is refitted with every seed")
     p.add_argument("--score-only", action="store_true",
