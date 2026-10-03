@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+
+# Data, runs and outputs (bank data must never be committed)
+raw/
+specs/
+old/
+data/
+runs/
+logs/
+results/*
+!results/MANIFEST*
+third_party/
+*.pt
+*.safetensors
+*.bin
+*.joblib
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/

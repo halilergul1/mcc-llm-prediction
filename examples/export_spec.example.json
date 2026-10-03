@@ -1,0 +1,42 @@
+{
+  "transactions": {
+    "files": ["/path/to/bank/transactions_2013_04.txt", "/path/to/bank/transactions_2013_05.txt"],
+    "read_csv": {"sep": "\t", "encoding": "utf-8", "on_bad_lines": "skip"},
+    "columns": {
+      "customer_id": "CUSTOMER_NO",
+      "date": "TRANSACTION_DATE",
+      "time": "TRANSACTION_TIME",
+      "amount": "AMOUNT",
+      "mcc": "MERCHANT_CATEGORY_CODE"
+    },
+    "date_format": "%m/%d/%Y",
+    "time_format": "%H.%M.%S",
+    "decimal": ",",
+    "require": ["MERCHANT_CATEGORY_DESCRIPTION"]
+  },
+  "demographics": {
+    "files": ["/path/to/bank/customers.txt"],
+    "read_csv": {"sep": "\t", "encoding": "utf-8"},
+    "columns": {
+      "customer_id": "CUSTOMER_NO",
+      "age": "AGE",
+      "gender": "GENDER",
+      "marital_status": "MARITAL_STATUS",
+      "education": "EDUCATION",
+      "occupation": "OCCUPATION",
+      "income": "INCOME"
+    },
+    "decimal": ",",
+    "labels": {
+      "gender": {"M": "male", "F": "female"},
+      "marital_status": {"Married": "married", "Single": "single", "Divorced": "divorced or widowed",
+                         "Widowed": "divorced or widowed", "Unknown": "unknown"},
+      "education": {"Primary School": "primary school", "Middle School": "middle school",
+                    "High School": "high school", "College": "university", "Master": "graduate school",
+                    "PhD": "graduate school", "Unknown": "unknown"},
+      "occupation": {"Private Sector Employee": "private sector employee", "Public Servant": "public sector employee",
+                     "Self-Employed": "self-employed", "Retired": "retired", "Housewife": "not employed",
+                     "Student": "not employed", "*": "other occupation"}
+    }
+  }
+}

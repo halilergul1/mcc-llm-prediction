@@ -1,0 +1,31 @@
+# priority A (about 87 GPU-hours): every headline claim
+runs/qwen-full            python scripts/train_qwen.py --condition full --seed 42 --no-merge
+runs/qwen-full-seed2      python scripts/train_qwen.py --condition full --seed 2 --no-merge
+runs/qwen-full-seed3      python scripts/train_qwen.py --condition full --seed 3 --no-merge
+runs/qwen-seq             python scripts/train_qwen.py --condition seq --seed 42 --no-merge
+runs/qwen-seq-seed2       python scripts/train_qwen.py --condition seq --seed 2 --no-merge
+runs/qwen-seq-seed3       python scripts/train_qwen.py --condition seq --seed 3 --no-merge
+runs/mistral-full         python scripts/train_mistral.py --condition full --seed 42 --no-merge
+runs/qwen-neutral         python scripts/train_qwen.py --condition neutral --seed 42 --no-merge
+# priority B: the six remaining factorial cells
+runs/qwen-seq+amounts                python scripts/train_qwen.py --condition seq+amounts --no-merge
+runs/qwen-seq+dates                  python scripts/train_qwen.py --condition seq+dates --no-merge
+runs/qwen-seq+demographics           python scripts/train_qwen.py --condition seq+demographics --no-merge
+runs/qwen-seq+amounts+dates          python scripts/train_qwen.py --condition seq+amounts+dates --no-merge
+runs/qwen-seq+amounts+demographics   python scripts/train_qwen.py --condition seq+amounts+demographics --no-merge
+runs/qwen-seq+dates+demographics     python scripts/train_qwen.py --condition seq+dates+demographics --no-merge
+# priority C: leave-one-field-out
+runs/qwen-full-minus-gender          python scripts/train_qwen.py --condition full --drop-field gender --no-merge
+runs/qwen-full-minus-age             python scripts/train_qwen.py --condition full --drop-field age --no-merge
+runs/qwen-full-minus-marital-status  python scripts/train_qwen.py --condition full --drop-field marital_status --no-merge
+runs/qwen-full-minus-education       python scripts/train_qwen.py --condition full --drop-field education --no-merge
+runs/qwen-full-minus-occupation      python scripts/train_qwen.py --condition full --drop-field occupation --no-merge
+runs/qwen-full-minus-income-group    python scripts/train_qwen.py --condition full --drop-field income_group --no-merge
+# priority D
+runs/mistral-full-seed2   python scripts/train_mistral.py --condition full --seed 2 --no-merge
+runs/mistral-full-seed3   python scripts/train_mistral.py --condition full --seed 3 --no-merge
+runs/qwen-neutral-seed2   python scripts/train_qwen.py --condition neutral --seed 2 --no-merge
+runs/qwen-neutral-seed3   python scripts/train_qwen.py --condition neutral --seed 3 --no-merge
+# variable-length run (4 to 14 input transactions). The run stops at once if a sample exceeds 512 tokens; add
+# --max-length 768 in that case.
+runs/qwen-full-varlen     python scripts/train_qwen.py --condition full --variable-lengths 4 14 --no-merge
