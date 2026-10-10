@@ -9,7 +9,7 @@ BEFORE any LLM is scored on `bank_b_confirm`. The paper and the response letter 
 its date. Nothing below may change after the first scoring of a confirmation split; any later analysis is
 reported as exploratory.
 
-- Pipeline commit: `779e5e6` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
+- Pipeline commit: `1b613fd` · Plan date: 2026-10-03 · Sign-off by SB, HIE and BB: recorded with the tag `v3-prereg`
 - Amended on 2026-10-03, before any model was scored on a confirmation split: the non-LLM models are scored on
   the confirmation splits when they are trained, not after the freeze (section 6). The first version of this
   plan is commit `77108bc`.
@@ -17,6 +17,11 @@ reported as exploratory.
   before any LLM run of the study was completed: the LoRA adapters are trained on the bf16 base weights
   without quantisation, not on an 8-bit copy. The change shortens the training; the non-LLM code is the same
   in both commits.
+- Amended on 2026-10-10, after the 25 LLM runs were trained and before any LLM was scored on a confirmation
+  split: the label scorers apply the output projection and compute the log-probabilities in float32 (pipeline
+  commit `1b613fd`). With the bf16 logits, two answers had exactly the same probability for about 5% of the
+  customers of a fine-tuned run, and argmax broke those ties by class order. The LLM predictions of the
+  pre-freeze splits are recomputed with the new scorer; the training runs and the non-LLM models are unchanged.
 
 ## 1. Data
 
