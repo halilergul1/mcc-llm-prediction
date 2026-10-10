@@ -8,7 +8,8 @@ Output tokens (Equation 1).
 Training uses the frozen base model in bf16, without quantisation, with PEFT and TRL; an 8-bit copy
 (bitsandbytes) is an option. For prediction the adapter is merged into the same bf16 base weights and
 the model scores the four answers (label scoring, below): the prediction is the most probable answer,
-and the four probabilities are kept. Free greedy generation (at most 10 new tokens) is a check only.
+and the four probabilities are kept. The model runs in bf16; the output projection and the
+log-probabilities are computed in float32. Free greedy generation (at most 10 new tokens) is a check only.
 """
 from __future__ import annotations
 
@@ -186,6 +187,30 @@ def generate(model: str | Path, prompts: list[str], backend: str = "vllm",
 # which is enough when the four answers start with four different tokens (checked) and the model then
 # completes them deterministically; check_scorers() measures that on a sample. sequence_scores() is the
 # exact path (the full answer string plus the end token), slower, and the one to use for raw models.
+# Both take the hidden states from the bf16 model and apply the output projection in float32: bf16 logits
+# carry about three significant digits, so two answers often got exactly the same probability and argmax
+# broke the tie by class order (about 5% of the customers of a fine-tuned Qwen run).
+
+def final_hidden_states(lm, ids: torch.Tensor) -> torch.Tensor:
+    """(T, d) hidden states that enter the output projection: the base transformer's output, final norm included."""
+    return lm.base_model(input_ids=ids, use_cache=False).last_hidden_state[0]
+
+
+def log_probs_fp32(lm, hidden: torch.Tensor) -> torch.Tensor:
+    """(..., V) log-probabilities over the vocabulary, with the output projection applied in float32.
+
+    The float32 copy of the output weights is made once per model (4 GB for Qwen3.5-9B).
+    """
+    if not hasattr(lm, "fp32_output_weights"):
+        head = lm.get_output_embeddings()
+        lm.fp32_output_weights = (head.weight.detach().float(),
+                                  None if head.bias is None else head.bias.detach().float())
+    weight, bias = lm.fp32_output_weights
+    logits = hidden.float() @ weight.T
+    if bias is not None:
+        logits = logits + bias
+    return logits.log_softmax(-1)
+
 
 def load_scorer(model: str | Path, family: str):
     """Tokenizer and bf16 model for scoring (merged fine-tuned directory, or a base model id for raw models)."""
@@ -217,27 +242,26 @@ def answer_ids(tokenizer, prompt: str, labels: list[str]) -> list[list[int]]:
 
 @torch.no_grad()
 def first_token_scores(tokenizer, lm, prompts: list[str], labels: list[str]) -> np.ndarray:
-    """(N, 4) log-probabilities of each answer's FIRST token at the end of each prompt; batch size 1, no padding."""
+    """(N, 4) float32 log-probabilities of each answer's FIRST token at the end of each prompt; batch size 1, no padding."""
     firsts = [ids[0] for ids in answer_ids(tokenizer, prompts[0], labels)]
     if len(set(firsts)) != len(firsts):
         raise ValueError("two answers share their first token; use sequence_scores()")
     out = np.empty((len(prompts), len(labels)))
     for i, prompt in enumerate(prompts):
         ids = torch.tensor([tokenizer(prompt).input_ids], device=lm.device)
-        logits = lm(input_ids=ids).logits[0, -1].float()
-        out[i] = logits.log_softmax(-1)[firsts].cpu().numpy()
+        out[i] = log_probs_fp32(lm, final_hidden_states(lm, ids)[-1])[firsts].cpu().numpy()
     return out
 
 
 @torch.no_grad()
 def sequence_scores(tokenizer, lm, prompts: list[str], labels: list[str]) -> np.ndarray:
-    """(N, 4) exact log-probabilities of each full answer (label + "." + end token); batch size 1, no padding."""
+    """(N, 4) exact float32 log-probabilities of each full answer (label + "." + end token); batch size 1, no padding."""
     out = np.empty((len(prompts), len(labels)))
     for i, prompt in enumerate(prompts):
         p = tokenizer(prompt).input_ids
         for j, a in enumerate(answer_ids(tokenizer, prompt, labels)):
             ids = torch.tensor([p + a], device=lm.device)
-            logp = lm(input_ids=ids).logits[0, len(p) - 1:-1].float().log_softmax(-1)
+            logp = log_probs_fp32(lm, final_hidden_states(lm, ids)[len(p) - 1:-1])
             out[i, j] = logp[torch.arange(len(a)), torch.tensor(a, device=lm.device)].sum().item()
     return out
 

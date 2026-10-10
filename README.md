@@ -80,7 +80,9 @@ removes one demographic field from `full`. Every condition uses one template and
 ends with the label set; no prompt contains a customer identifier.
 
 An LLM predicts by label scoring: the model's probabilities of the four answers are computed, the most
-probable one is the prediction, and the four probabilities are stored. Raw models are scored the same way,
+probable one is the prediction, and the four probabilities are stored. The model runs in bf16 and the output
+projection and the probabilities are computed in float32, so that two answers do not tie through rounding.
+Raw models are scored the same way,
 zero-shot and with 16 fixed training examples. Free generation is used only to count answers that are not
 a category.
 
@@ -182,7 +184,7 @@ All values are in `src/mcc_llm/config.py`.
 | Optimisation | paged AdamW 8-bit, learning rate 2e-4, cosine decay, 100 warm-up steps, weight decay 0.01, gradient clipping 0.3 |
 | Batch and epochs | 2 per device x 8 accumulation steps (16); 3 epochs, final checkpoint, no early stopping |
 | Other | bf16, maximum length 512 tokens, seeds 42, 2, 3 |
-| Prediction | adapter merged into bf16 weights; label scoring over the four answers |
+| Prediction | adapter merged into bf16 weights; label scoring over the four answers, output projection in float32 |
 | Baselines | grid search on `val` by macro-F1; loss weighting in the grid; seeds 42, 2, 3, 4, 5 |
 | Evaluation | 10,000 paired bootstrap resamples (seed 42), exact McNemar test, Holm over the non-LLM comparators |
 
