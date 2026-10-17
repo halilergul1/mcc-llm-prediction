@@ -139,6 +139,12 @@ python scripts/evaluate.py --predictions results/predictions/bank_b_confirm --ou
 python scripts/evaluate_v3.py summary --split bank_b_confirm
 python scripts/evaluate_v3.py families && python scripts/evaluate_v3.py shift
 python scripts/evaluate_v3.py subgroups && python scripts/evaluate_v3.py calibration --model qwen-full
+
+# 7. descriptive tables of the paper (no model is trained or scored)
+python scripts/cohort_stats.py                  # the two eligible cohorts: Table 4, Figures 2 and 3, codes per class
+python scripts/slices.py                        # scores by window span and input diversity, both test splits
+python scripts/cost_table.py                    # training time, memory and scoring time from the logs
+python scripts/paper_extras.py                  # split sizes, filter counts, Clothing operating point, generation check
 ```
 
 To try the pipeline without bank data:
