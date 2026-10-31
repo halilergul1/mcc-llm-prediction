@@ -6,7 +6,8 @@ Writes CSV files so that scripts/trace_numbers.py can find every number:
     calibration.csv      the cost-weighted Clothing operating point of one model: threshold chosen on validation,
                          recall and precision on the test split, against argmax
     generation.csv       free generation on bank_b_dev: answers outside the label set and agreement with label scoring
-    primary_scores.csv   macro-F1 of the LLM (seed mean) and of the comparator on each population of the primary analysis
+    primary_scores.csv   macro-F1 of the LLM (seed mean) and of the comparator on each population of the primary analysis,
+                         for the main baseline (gbdt-full) and for Averaging, the strongest baseline on Bank B
 
     python scripts/paper_extras.py --predictions results/predictions --data data/processed --out results/local/extras
 """
@@ -127,7 +128,8 @@ def main():
                         ("calibration", pd.DataFrame([operating_point(args.predictions, m, args.split, args.cost_fn, args.cost_fp)
                                                       for m in args.models])),
                         ("generation", generation_table(args.predictions)),
-                        ("primary_scores", primary_scores(args.predictions, args.data, "qwen-full", "gbdt-full"))]:
+                        ("primary_scores", pd.concat([primary_scores(args.predictions, args.data, "qwen-full", c)
+                                                      for c in ("gbdt-full", "averaging")], ignore_index=True))]:
         table.to_csv(args.out / f"{name}.csv", index=False)
         print(f"--- {name}\n{table.round(3).to_string(index=False)}")
 

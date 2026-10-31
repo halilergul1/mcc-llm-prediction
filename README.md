@@ -135,6 +135,7 @@ python scripts/manifest.py results/predictions --out results/MANIFEST_prediction
 
 # 6. evaluation
 python scripts/evaluate_v3.py primary --llm qwen-full
+python scripts/evaluate_v3.py --out results/local/metrics_v3_averaging primary --llm qwen-full --non-llm averaging  # strongest baseline on Bank B
 python scripts/evaluate.py --predictions results/predictions/bank_b_confirm --out results/metrics/bank_b_confirm
 python scripts/evaluate_v3.py summary --split bank_b_confirm
 python scripts/evaluate_v3.py families && python scripts/evaluate_v3.py shift
@@ -145,6 +146,7 @@ python scripts/cohort_stats.py                  # the two eligible cohorts: Tabl
 python scripts/slices.py                        # scores by window span and input diversity, both test splits
 python scripts/cost_table.py                    # training time, memory and scoring time from the logs
 python scripts/paper_extras.py                  # split sizes, filter counts, Clothing operating point, generation check
+python scripts/calibration_classes.py           # one-versus-rest ECE per class, Brier decomposition, Clothing reliability
 ```
 
 To try the pipeline without bank data:
